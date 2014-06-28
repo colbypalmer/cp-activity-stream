@@ -1,7 +1,8 @@
-from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
+from django.shortcuts import render, get_object_or_404
+from django.utils import timezone
 from django.views.generic import View
 from models import Stream, StreamItem, StreamConnection
 from forms import StreamForm
@@ -24,7 +25,8 @@ def ingest_tweet(tweet, streamconnection):
     tweet_text = expand_tweet_urls(tweet)
     item, created = StreamItem.objects.get_or_create(stream=streamconnection.stream,
                                                      connection=streamconnection.connection,
-                                                     connection_system_id=tweet.id, date=tweet.created_at)
+                                                     connection_system_id=tweet.id,
+                                                     date=tweet.created_at.replace(tzinfo=timezone.utc))
     if created:
         item.title = tweet.id
         item.body = tweet_text
@@ -32,6 +34,7 @@ def ingest_tweet(tweet, streamconnection):
         item.picture = ''
         item.type = 'tweet'
         item.permalink = u'https://twitter.com/{}/status/{}'.format(streamconnection.connection.username, tweet.id)
+        item.raw_data = tweet
         if tweet.user.protected:
             item.is_published = False
         item.save()
@@ -54,19 +57,23 @@ def update_facebook(streamconnection):
 
 def ingest_fb(post, streamconnection):
     try:
-        if post['name']:  # eliminate shared stories to stick with explicit shares
-            item, created = StreamItem.objects.get_or_create(stream=streamconnection.stream,
-                                                             connection=streamconnection.connection,
-                                                             connection_system_id=post['id'], date=post['created_time'])
-            if created:
+        item, created = StreamItem.objects.get_or_create(stream=streamconnection.stream,
+                                                         connection=streamconnection.connection,
+                                                         connection_system_id=post['id'], date=post['created_time'])
+        if created:
+            if 'name' in post:  # eliminate shared stories to stick with explicit shares
                 item.title = post['name']
                 item.body = post['message']
                 item.linked_url = post['link']
                 item.picture = post['picture']
                 item.type = post['type']
-                item.permalink = u'https://facebook.com/{}/posts/{}'.format(streamconnection.connection.username,
-                                                                            post['id'].split('_')[1])
-                item.save()
+            else:
+                item.is_published = False
+
+            item.permalink = u'https://facebook.com/{}/posts/{}'.format(streamconnection.connection.username,
+                                                                        post['id'].split('_')[1])
+            item.raw_data = post
+            item.save()
 
     except KeyError:
         pass
