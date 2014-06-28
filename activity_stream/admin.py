@@ -15,7 +15,8 @@ class StreamItemAdmin(admin.ModelAdmin):
 
 
 class StreamConnectionAdmin(admin.ModelAdmin):
-    list_display = ('stream', 'connection', 'is_published', 'updated')
+    list_display = ('stream', 'connection', 'post_delay_hours', 'stream_refresh_hours', 'updated',
+                    'created', 'is_published')
     date_hierarchy = 'created'
 
 
