@@ -74,7 +74,10 @@ class StreamItem(models.Model):
     updated = models.DateTimeField(auto_now_add=True, auto_now=True, editable=False)
 
     def __unicode__(self):
-        return u''.format(self.title)
+        if self.title:
+            return u'{}: {}'.format(self.type.title(), self.title)
+        else:
+            return u'{}: {}'.format(self.type.title(), self.id)
 
 
 @receiver(post_save, sender=Connection)

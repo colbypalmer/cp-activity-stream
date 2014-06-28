@@ -8,7 +8,7 @@ class StreamAdmin(admin.ModelAdmin):
 
 
 class StreamItemAdmin(admin.ModelAdmin):
-    list_display = ('title', 'type', 'connection', 'date')
+    list_display = ('connection_system_id', 'title', 'type', 'connection', 'date')
     list_filter = ['connection__provider']
     date_hierarchy = 'date'
     search_fields = ['username', 'title', 'body', 'text']
