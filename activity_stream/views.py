@@ -61,13 +61,19 @@ def ingest_fb(post, streamconnection):
                                                          connection=streamconnection.connection,
                                                          connection_system_id=post['id'], date=post['created_time'])
         if created:
-            if 'name' in post:  # eliminate shared stories to stick with explicit shares
+            if 'name' in post:  # posted link
                 item.title = post['name']
                 item.body = post['message']
                 item.linked_url = post['link']
                 item.picture = post['picture']
                 item.type = post['type']
-            else:
+            if post['type'] == 'photo':  # posted photo
+                item.title = u'{} posted a photo.'.format(post['from']['name'])
+                item.body = post['message']
+                item.linked_url = post['link']
+                item.picture = post['picture']
+                item.type = post['type']
+            else:  # eliminate shared stories to stick with explicit shares
                 item.is_published = False
 
             item.permalink = u'https://facebook.com/{}/posts/{}'.format(streamconnection.connection.username,
