@@ -1,8 +1,6 @@
 from django import forms
 from django.forms.widgets import CheckboxSelectMultiple
-from models import Stream, StreamConnection, StreamItem
-from broker.models import Connection
-
+from models import Stream, StreamConnection
 
 class StreamForm(forms.ModelForm):
     streamconnections = forms.ModelMultipleChoiceField(widget=CheckboxSelectMultiple,

@@ -21,6 +21,7 @@ class Stream(models.Model):
         return u'{} {}'.format(self.user.username, self.pk)
 
     def save(self, *args, **kwargs):
+        super(Stream, self).save(*args, **kwargs)
         # make sure we have StreamConnections for each active connection
         connections = Connection.objects.filter(user=self.user, is_active=True)
         for connection in connections:
@@ -28,8 +29,6 @@ class Stream(models.Model):
             if not created and not self.is_active:
                 sc.is_active = self.is_active
                 sc.save()
-        super(Stream, self).save(*args, **kwargs)
-
 
 
 class StreamConnection(models.Model):
@@ -46,7 +45,7 @@ class StreamConnection(models.Model):
     updated = models.DateTimeField(auto_now_add=True, auto_now=True, editable=False)
 
     def __unicode__(self):
-        return u'Stream {}: {} ({})'.format(self.stream.id, self.connection.username, self.connection.provider.title())
+        return u'Stream {}: {} {}'.format(self.stream.id, self.connection.provider.title(), self.connection.uid)
 
     def needs_refresh(self):
         now_adjusted = datetime.datetime.utcnow().replace(tzinfo=timezone.utc) + datetime.timedelta(hours=int(self.post_delay_hours))
@@ -58,16 +57,32 @@ class StreamItem(models.Model):
     """
     The individual posts in the Stream.
     """
+    # generic attributes
     stream = models.ForeignKey(Stream)
     connection = models.ForeignKey(Connection)
     type = models.CharField(max_length=50)
     date = models.DateTimeField()
     title = models.CharField(max_length=255)
     body = models.TextField()
-    picture = models.URLField(null=True, blank=True, max_length=300)
     linked_url = models.URLField(null=True, blank=True, max_length=255)
-    connection_system_id = models.CharField(max_length=255)
+    source_id = models.CharField(max_length=255)
     permalink = models.URLField()
+    privacy = models.CharField(null=True, blank=True, max_length=50)
+    # location attributes
+    street = models.CharField(null=True, blank=True, max_length=200)
+    city = models.CharField(null=True, blank=True, max_length=140)
+    state = models.CharField(null=True, blank=True, max_length=50)
+    country = models.CharField(null=True, blank=True, max_length=50)
+    longitude = models.FloatField(null=True, blank=True, max_length=50)
+    latitude = models.FloatField(null=True, blank=True, max_length=50)
+    place_id = models.CharField(null=True, blank=True, max_length=50)
+    place_name = models.CharField(null=True, blank=True, max_length=200)
+    # photo attributes
+    picture = models.URLField(null=True, blank=True, max_length=300, help_text='The largest photo available.')
+    picture_id = models.CharField(null=True, blank=True, max_length=100)
+    picture_sm = models.URLField(null=True, blank=True, max_length=300, help_text='Up to 320px wide.')
+    picture_med = models.URLField(null=True, blank=True, max_length=300, help_text='Up to 480px wide.')
+    raw_data = models.TextField(null=True, blank=True)
     is_published = models.BooleanField(default=True)
     is_active = models.BooleanField(default=True)
     created = models.DateTimeField(auto_now_add=True)

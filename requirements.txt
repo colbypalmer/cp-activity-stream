@@ -1,2 +1,2 @@
 python-dateutil==2.2
-git+ssh://git@github.com:colbypalmer/cp-activity-stream.git
+git+ssh://git@github.com:colbypalmer/cp-broker.git
