@@ -85,8 +85,8 @@ class StreamItem(models.Model):
     raw_data = models.TextField(null=True, blank=True)
     is_published = models.BooleanField(default=True)
     is_active = models.BooleanField(default=True)
-    created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now_add=True, auto_now=True, editable=False)
+    created = models.DateTimeField(datetime.datetime.today())
+    updated = models.DateTimeField(datetime.datetime.today(), auto_now=True, editable=False)
 
     def __unicode__(self):
         if self.title:
