@@ -2,6 +2,7 @@ import facebook
 from dateutil import parser
 
 from django.contrib.auth.models import User
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils import timezone
@@ -33,10 +34,16 @@ def expand_tweet_urls(tweet):
 def ingest_tweet(tweet, streamconnection):
     tweet_text = expand_tweet_urls(tweet)
 
-    item, created = StreamItem.objects.get_or_create(stream=streamconnection.stream,
-                                                     connection=streamconnection.connection,
-                                                     source_id=tweet.id, date=tweet.created_at.replace(tzinfo=timezone.utc))
-    if created:
+    try:
+        item = StreamItem.objects.get(stream=streamconnection.stream,
+                                      connection=streamconnection.connection,
+                                      source_id=tweet.id, date=tweet.created_at.replace(tzinfo=timezone.utc))
+    except ObjectDoesNotExist:
+
+        item = StreamItem(stream=streamconnection.stream,
+                          connection=streamconnection.connection,
+                          source_id=tweet.id, date=tweet.created_at.replace(tzinfo=timezone.utc))
+
         item.title = tweet.id
         item.linked_url = ''
         item.picture = ''
@@ -90,11 +97,15 @@ def update_facebook(streamconnection):
 
 def ingest_fb(post, streamconnection, post_type):
 
-    item, created = StreamItem.objects.get_or_create(stream=streamconnection.stream,
-                                                     connection=streamconnection.connection,
-                                                     source_id=post['id'], date=post['updated_time'])
+    try:
+        item = StreamItem.objects.get(stream=streamconnection.stream,
+                                      connection=streamconnection.connection,
+                                      source_id=post['id'], date=post['updated_time'])
+    except ObjectDoesNotExist:
 
-    if created:
+        item = StreamItem(stream=streamconnection.stream,
+                          connection=streamconnection.connection,
+                          source_id=post['id'], date=post['updated_time'])
 
         item.type = post_type
         item.date = localize_datetime(parser.parse(post['updated_time']))
