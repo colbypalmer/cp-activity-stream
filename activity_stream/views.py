@@ -94,6 +94,24 @@ def update_facebook(streamconnection):
     except facebook.GraphAPIError:
         pass
 
+    try:
+        links = graph.get_connections(str(streamconnection.connection.uid), 'links')['data']
+        for link in links:
+            ingest_fb(link, streamconnection, 'link')
+    except facebook.GraphAPIError:
+        pass
+
+
+def get_fql_privacy(token, post_id):
+    graph = facebook.GraphAPI(token)
+    fql_str = 'SELECT value, description FROM privacy WHERE id = {}'.format(post_id)
+    fql_obj = graph.fql(fql_str)
+    if fql_obj:
+        privacy = fql_obj[0]['value']
+        return privacy
+    else:
+        return None
+
 
 def ingest_fb(post, streamconnection, post_type):
 
@@ -115,13 +133,17 @@ def ingest_fb(post, streamconnection, post_type):
         if post_type == 'status':
             item.title = u'{} posted a status update.'.format(post['from']['name'])
             item.body = post['message'].encode('unicode_escape')
+            item.date = localize_datetime(parser.parse(post['updated_time']))
             item.permalink = u'https://facebook.com/{}/posts/{}'.format(streamconnection.connection.uid, post['id'])
+            item.privacy = get_fql_privacy(streamconnection.connection.token,  post['id'])
 
         if post_type == 'photo':
             item.title = u'{} posted a photo.'.format(post['from']['name'])
             if 'name' in post:
                 item.body = post['name'].encode('unicode_escape')
+            item.date = localize_datetime(parser.parse(post['updated_time']))
             item.permalink = post['link']
+            item.privacy = get_fql_privacy(streamconnection.connection.token, post['id'])
             item.picture = post['source']
             if 'images' in post:
                 w = post['width']
@@ -133,6 +155,16 @@ def ingest_fb(post, streamconnection, post_type):
                         item.picture_med = image['source']
                     if image['width'] == 320:
                         item.picture_sm = image['source']
+
+        if post_type == 'link':
+            item.title = post['name']
+            if 'message' in post:
+                item.body = post['message'].encode('unicode_escape')
+            item.date = localize_datetime(parser.parse(post['created_time']))
+            item.permalink = u'https://facebook.com/{}/posts/{}'.format(streamconnection.connection.uid, post['id'])
+            item.privacy = post['privacy']['value']
+            item.picture = post['picture']
+            item.linked_url = post['link']
 
         if 'place' in post:
             if 'street' in post['place']['location']:

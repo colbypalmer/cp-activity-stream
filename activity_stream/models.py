@@ -78,10 +78,10 @@ class StreamItem(models.Model):
     place_id = models.CharField(null=True, blank=True, max_length=50)
     place_name = models.CharField(null=True, blank=True, max_length=200)
     # photo attributes
-    picture = models.URLField(null=True, blank=True, max_length=300, help_text='The largest photo available.')
+    picture = models.URLField(null=True, blank=True, max_length=400, help_text='The largest photo available.')
     picture_id = models.CharField(null=True, blank=True, max_length=100)
-    picture_sm = models.URLField(null=True, blank=True, max_length=300, help_text='Up to 320px wide.')
-    picture_med = models.URLField(null=True, blank=True, max_length=300, help_text='Up to 480px wide.')
+    picture_sm = models.URLField(null=True, blank=True, max_length=400, help_text='Up to 320px wide.')
+    picture_med = models.URLField(null=True, blank=True, max_length=400, help_text='Up to 480px wide.')
     raw_data = models.TextField(null=True, blank=True)
     is_published = models.BooleanField(default=True)
     is_active = models.BooleanField(default=True)
