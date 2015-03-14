@@ -3,6 +3,7 @@ from dateutil import parser
 
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils import timezone
@@ -203,10 +204,11 @@ def ingest_fb(post, streamconnection, post_type):
         item.save()
 
 
-class ActivityStream(View):
+class ActivityStreamMixin(object):
 
-    def get(self, request):
-        stream, created = Stream.objects.get_or_create(user=User.objects.get(id=request.user.id))
+    def get_activity_stream(self, user):
+
+        stream, created = Stream.objects.get_or_create(user=user)
 
         if not stream.streamconnection_set.all():
             return HttpResponseRedirect(reverse('activity_stream_settings'))
@@ -222,9 +224,9 @@ class ActivityStream(View):
                         update_twitter(streamconnection)
 
                 elif streamconnection.connection.provider == 'facebook':
-                    statuses = StreamItem.objects.filter(stream__user=stream.user, is_published=True,
-                                                         connection__provider='facebook')
-                    if not statuses:
+                    _statuses = StreamItem.objects.filter(stream__user=stream.user, is_published=True,
+                                                          connection__provider='facebook')
+                    if not _statuses:
                         update_facebook(streamconnection)
                     if streamconnection.needs_refresh():
                         update_facebook(streamconnection)
@@ -232,9 +234,31 @@ class ActivityStream(View):
                 else:
                     pass  # in case the broker adds clients before activity_stream
 
-        posts = stream.streamitem_set.filter(is_published=True).order_by('-date')
+        stream_queryset = stream.streamitem_set.filter(is_published=True).order_by('-date')
 
-        context = dict(stream=stream, request=request, posts=posts)
+        activity_stream = dict(stream=stream, stream_queryset=stream_queryset)
+
+        return activity_stream
+
+
+class ActivityStream(ActivityStreamMixin, View):
+
+    def get(self, request):
+
+        activity_stream = self.get_activity_stream(user=User.objects.get(id=1))  # TODO fix this
+
+        paginator = Paginator(activity_stream['stream_queryset'], 30)
+
+        page = request.GET.get('page')
+
+        try:
+            posts = paginator.page(page)
+        except PageNotAnInteger:
+            posts = paginator.page(1)
+        except EmptyPage:
+            posts = paginator.page(paginator.num_pages)
+
+        context = dict(stream=activity_stream['stream'], request=request, posts=posts)
         return render(request, 'activity_stream/list.html', context)
 
 
